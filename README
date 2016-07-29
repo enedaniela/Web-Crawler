@@ -1,0 +1,84 @@
+Daniela Ene
+326CC
+Protocoale de comunicatii
+Tema3
+
+
+Atat pentru client cat si pentru server se fac verificari de corectitudine a
+parametrilor in linia de comanda. Daca unul dintre parametrii obligatorii
+lipseste, sau nu este valid se arunca o exceptie definita. Pe clauza
+catch se intoarce un mesaj corespunzator.
+
+Celor 3 moduri (-r, -e, -o) le corespund variabile globale, care sunt setate
+in functia checkParameters. Aceste variabile sunt apoi interogate pentru a
+afla in ce mod a fost apelat programul. In functiile writeStatus si writeError
+este interogata variabila logFile pentru a stabili daca mesajul se scrie la
+stdout sau in fisierul de log.
+
+	In cazul serverului, fisierul de log este cel dat ca parametru, iar in 
+cazul clientului fisierul de log este format din stringul dat ca parametru si
+pidul procesului.
+
+	Dupa ce au fost facute validarile de parametri, serverul asteapta clienti
+sa se conecteze si ii salveaza intr-un vector de obiecte de tip Worker. Acest
+tip defineste un client: socket, port, adresa IP si un camp isBusy, care
+intoarce starea clientului, daca are o descarcare in curs sau asteapta sa i
+se trimita un mesaj. 
+
+IN SERVER:
+
+	Comanda STATUS:
+	Se apeleaza functia displayWorkers, care parcurge vectorul de clienti
+	conectati si construieste un string cu informatiile din acest vector.
+	Daca procesul unui client se inchide fortat, acesta este scos din
+	vector, comanda status afisand clientii ramasi.
+
+	Comanda DOWNLOAD:
+	Linkurile ce urmeaza sa fie descarcate sunt introduse
+	intr-o coada (links) din care se extrage cate un link pentru care se 
+	construieste un header. Protocolul definit are urmatoarea forma:
+	"download x link", unde x are urmatoarea semnificatie:
+	0 - mod normal
+	1 - mod recursiv
+	2 - mod entire
+	3 - mod recursiv + entire
+
+	Dupa adaugarea linkului in coada, este creata ierahia de directoare in care
+	va fi salvat fisierul. Pentru a costrui calea, am parsat linkul primit
+	folosind functiile pare, parseByDelimiter si appendStrings, obtinand doar
+	calea, fara numele fisierului si comanda system().
+	Pentru a asocia linkuri clientilor, functia giveAllTasks extrage un link 
+	din coada si apeleaza functia giveTask care cauta in vectorul workers
+	un client liber, adauga headerul la mesaj si timite comanda de 
+	descarcare catre client.
+	Daca serverul primeste activitate de la socketii clientilor, citeste
+	mesajul venit, extrage headerul mesajului de forma "MSG nr_bytes mesaj"
+	si scrie in fisier nr_bytes din mesajul primit. Pentru primul mesaj
+	scoate si headerul intors de comanda GET.
+
+	Comanda EXIT:
+	Daca comanda exit a fost introdusa de la tastatura, serverul le trimite
+	clientilor un mesaj prin care ii anunta de inchidere, parcurge vectorul
+	workers si inchide socketul pentru fiecare client aflat in vector, inchide
+	si stdin si se incheie executia programului.
+
+IN CLIENT:
+
+	Clientul asteapta mesaje de la server. Daca primeste un mesaj cu header
+	corespunzator comenzii download, extrage modul in care trebuie sa
+	descarce link-ul si link-ul. Folosind gethostbyname extrage informatiile
+	necesare comenzii GET. Dupa trimiterea comenzii, citeste de pe socketul
+	nou deschis, construieste headerul de forma "MSG nr_bytes mesaj" si il
+	trimite serverului.
+	Daca clientul primeste mesajul "closing" de la server, inchide socketul
+	cu serverul si programul se termina.
+
+Mentionez ca doar modul normal este functional.
+Serverul primeste o singura comanda download, dar mai accepta comenzi status
+sau exit. Serverul se inchide doar la comanda exit.
+
+Referinte:
+Laborator HTTP
+Laborator Multiplexare
+
+
